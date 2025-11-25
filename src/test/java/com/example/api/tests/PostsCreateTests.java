@@ -3,56 +3,103 @@ package com.example.api.tests;
 import com.example.api.domain.client.PostsApi;
 import com.example.api.domain.model.Post;
 import io.restassured.response.Response;
+import org.assertj.core.api.Assertions;
 import org.junit.jupiter.api.DisplayName;
-import org.junit.jupiter.api.Tag;
 import org.junit.jupiter.api.Test;
-import static org.assertj.core.api.Assertions.assertThat;
 
-@Tag("api")
 class PostsCreateTests extends TestBase {
 
-    private final PostsApi posts = new PostsApi();
+    private static final int STATUS_CREATED = 201; // HTTP 201 Created
+
+    private final PostsApi postsApi = new PostsApi();
 
     @Test
-    @DisplayName("POST /posts — позитив: создаёт пост, возвращает 201 и эхо-поля + новый id")
+    @DisplayName("POST /posts — positive: creates a post and returns 201 with echoed fields and new id")
     void createPost_positive() {
-        Post payload = new Post(1, "foo", "bar");
+        Post newPost = new Post()
+                .setUserId(1)
+                .setTitle("Sample title")
+                .setBody("Sample body");
 
-        Response resp = posts.createPost(payload);
-        Post created = resp.as(Post.class);
+        Response response = postsApi.createPost(newPost);
 
-        assertThat(resp.statusCode()).isEqualTo(201);
-        assertThat(created.getId()).isNotNull();
-        assertThat(created.getUserId()).isEqualTo(1);
-        assertThat(created.getTitle()).isEqualTo("foo");
-        assertThat(created.getBody()).isEqualTo("bar");
+        response.then()
+                .statusCode(STATUS_CREATED);
+
+        Post createdPost = response.as(Post.class);
+
+        Assertions.assertThat(createdPost.getId())
+                .as("id should be generated for created post")
+                .isNotNull();
+
+        Assertions.assertThat(createdPost.getUserId())
+                .as("userId should be echoed")
+                .isEqualTo(newPost.getUserId());
+
+        Assertions.assertThat(createdPost.getTitle())
+                .as("title should be echoed")
+                .isEqualTo(newPost.getTitle());
+
+        Assertions.assertThat(createdPost.getBody())
+                .as("body should be echoed")
+                .isEqualTo(newPost.getBody());
     }
 
     @Test
-    @DisplayName("POST /posts — «негатив»: пустой title допускается и просто эхоится (особенность сервиса)")
-    void createPost_emptyTitle_echoed() {
-        Post payload = new Post(2, "", "content");
+    @DisplayName("POST /posts — accepts empty title and returns 201 with echoed body and userId")
+    void createPost_withEmptyTitle() {
+        Post newPost = new Post()
+                .setUserId(1)
+                .setTitle("")
+                .setBody("Body with empty title");
 
-        Response resp = posts.createPost(payload);
-        Post created = resp.as(Post.class);
+        Response response = postsApi.createPost(newPost);
 
-        assertThat(resp.statusCode()).isEqualTo(201);
-        assertThat(created.getUserId()).isEqualTo(2);
-        assertThat(created.getTitle()).isEqualTo("");
-        assertThat(created.getBody()).isEqualTo("content");
+        response.then()
+                .statusCode(STATUS_CREATED);
+
+        Post createdPost = response.as(Post.class);
+
+        Assertions.assertThat(createdPost.getTitle())
+                .as("title is expected to be echoed even if it's empty")
+                .isEqualTo(newPost.getTitle());
+
+        Assertions.assertThat(createdPost.getBody())
+                .as("body should be echoed")
+                .isEqualTo(newPost.getBody());
+
+        Assertions.assertThat(createdPost.getUserId())
+                .as("userId should be echoed")
+                .isEqualTo(newPost.getUserId());
     }
 
     @Test
-    @DisplayName("POST /posts — «негатив»: отсутствует body => сервер просто вернёт то, что прислали")
-    void createPost_missingBodyField() {
-        Post payload = new Post(3, "title", null);
+    @DisplayName("POST /posts — accepts null body and returns 201 with echoed title and userId")
+    void createPost_withNullBody() {
+        Post newPost = new Post()
+                .setUserId(1)
+                .setTitle("Title with null body")
+                .setBody(null);
 
-        Response resp = posts.createPost(payload);
-        Post created = resp.as(Post.class);
+        Response response = postsApi.createPost(newPost);
 
-        assertThat(resp.statusCode()).isEqualTo(201);
-        assertThat(created.getBody()).isNull();
-        assertThat(created.getTitle()).isEqualTo("title");
-        assertThat(created.getUserId()).isEqualTo(3);
+        response.then()
+                .statusCode(STATUS_CREATED);
+
+        Post createdPost = response.as(Post.class);
+
+        Assertions.assertThat(createdPost.getUserId())
+                .as("userId should be echoed")
+                .isEqualTo(newPost.getUserId());
+
+        Assertions.assertThat(createdPost.getTitle())
+                .as("title should be echoed")
+                .isEqualTo(newPost.getTitle());
+
+        // В JSONPlaceholder поле body при null может отсутствовать или быть null —
+        // оставляем гибкую проверку, как у тебя было изначально.
+        Assertions.assertThat(createdPost.getBody())
+                .as("body may be null or missing when sent as null")
+                .isEqualTo(newPost.getBody());
     }
 }

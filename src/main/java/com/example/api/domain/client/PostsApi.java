@@ -3,40 +3,45 @@ package com.example.api.domain.client;
 import com.example.api.core.Specs;
 import com.example.api.domain.model.Post;
 import io.restassured.response.Response;
+
 import static io.restassured.RestAssured.given;
 
 public class PostsApi {
-    private static final String POSTS = "/posts";
+
+    private static final String POSTS_PATH = "/posts";
+    private static final int STATUS_CREATED = 201; // HTTP 201 Created
 
     public Response getAllPosts() {
-        return given().spec(Specs.requestSpec())
-                .when().get(POSTS)
-                .then().spec(Specs.jsonOkSpec())
-                .extract().response();
+        return given()
+                .spec(Specs.requestSpec())
+                .when()
+                .get(POSTS_PATH);
     }
 
     public Response getPostById(int id) {
-        return given().spec(Specs.requestSpec())
-                .pathParam("id", id)
-                .when().get(POSTS + "/{id}")
-                .then().spec(Specs.jsonOkSpec())
-                .extract().response();
+        return given()
+                .spec(Specs.requestSpec())
+                .when()
+                .get(POSTS_PATH + "/" + id);
     }
 
     public Response getPostsByUserId(int userId) {
-        return given().spec(Specs.requestSpec())
+        return given()
+                .spec(Specs.requestSpec())
                 .queryParam("userId", userId)
-                .when().get(POSTS)
-                .then().spec(Specs.jsonOkSpec())
-                .extract().response();
+                .when()
+                .get(POSTS_PATH);
     }
 
     public Response createPost(Post post) {
-        return given().spec(Specs.requestSpec())
+        return given()
+                .spec(Specs.requestSpec())
                 .body(post)
-                .when().post(POSTS)
+                .when()
+                .post(POSTS_PATH)
                 .then()
-                .statusCode(201)
-                .extract().response();
+                .statusCode(STATUS_CREATED)
+                .extract()
+                .response();
     }
 }
